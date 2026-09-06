@@ -3,5 +3,42 @@ name = "didactic-adventure"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = []
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "numpy",
+    "pandas",
+    "polars",
+    "pyarrow",
+    "scikit-learn",
+]
+
+[dependency-groups]
+mlops = ["mlflow", "zenml[local]"]
+dev = [
+    "ruff",
+    "mypy",
+    "bandit[toml]",
+    "pytest",
+    "pytest-cov",
+    "pre-commit",
+    "ipykernel",
+]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N", "PD"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
