@@ -21,3 +21,22 @@ repos:
       - id: bandit
         args: ["-r", ".", "-x", ".venv", "-c", "pyproject.toml"]
         pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Validate YAML syntax.
+      - id: check-yaml
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      # Lint GitHub Actions workflows.
+      - id: actionlint
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.38.0
+    hooks:
+      # Validate workflow and Dependabot config schemas.
+      - id: check-github-workflows
+      - id: check-dependabot
