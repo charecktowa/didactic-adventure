@@ -43,15 +43,16 @@ def validate_model(
 ) -> Model:
     """Check that ``model`` fulfils the contracts and works on a small sample.
 
-    A `Trainable` model is fitted on the sample, so validate before the real training.
-    Set ``trainable`` when the caller is going to train the model and `fit` is required.
+    Set ``trainable`` when the caller is going to train the model: `fit` becomes required
+    and the model is fitted on the sample, so validate before the real training. Otherwise
+    the model is used as it is, like a pretrained one, and never refitted.
 
     Raises:
         InvalidModelError: with every problem found.
     """
     problems = _check_structure(model, trainable=trainable)
     if not problems and isinstance(model, Model):
-        problems = _check_behaviour(model, features, target)
+        problems = _check_behaviour(model, features, target, trainable=trainable)
         if not problems:
             return model
     raise InvalidModelError(model, problems)
@@ -83,6 +84,8 @@ def _missing_methods(model: object, contract: type) -> list[str]:
 
 
 def _check_signature(model: object, name: str, parameters: tuple[str, ...]) -> str | None:
+    # Bound positionally: the framework calls contract methods positionally, so parameter
+    # names are free (`fit(X, y)` is fine), as they are for mypy.
     signature = inspect.signature(getattr(model, name))
     try:
         signature.bind(*parameters)
@@ -91,9 +94,11 @@ def _check_signature(model: object, name: str, parameters: tuple[str, ...]) -> s
     return None
 
 
-def _check_behaviour(model: Model, features: pd.DataFrame, target: np.ndarray) -> list[str]:
+def _check_behaviour(
+    model: Model, features: pd.DataFrame, target: np.ndarray, *, trainable: bool
+) -> list[str]:
     try:
-        if isinstance(model, Trainable):
+        if trainable and isinstance(model, Trainable):
             model.fit(features, target)
         predictions = model.predict(features)
         if np.shape(predictions) != (len(features),):

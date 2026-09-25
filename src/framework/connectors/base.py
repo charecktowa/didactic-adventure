@@ -52,9 +52,12 @@ class ModelConnector(ABC):
     def load(cls, directory: Path) -> Self:
         """Load a model saved by this same connector from ``directory``."""
         metadata = json.loads((directory / METADATA_FILE).read_text())
-        if metadata["connector"] != cls._qualified_name():
+        saved_by = metadata.get("connector")
+        if saved_by is None:
+            raise ValueError(f"{directory / METADATA_FILE} does not say which connector saved it")
+        if saved_by != cls._qualified_name():
             raise ValueError(
-                f"{directory} was saved by {metadata['connector']}, "
+                f"{directory} was saved by {saved_by}, "
                 f"it cannot be loaded with {cls._qualified_name()}"
             )
         return cls._load_artifacts(directory)

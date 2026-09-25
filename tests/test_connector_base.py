@@ -81,3 +81,11 @@ def test_load_rejects_a_model_saved_by_another_connector(tmp_path: Path) -> None
 
     with pytest.raises(ValueError, match="OtherRule"):
         ThresholdRule.load(tmp_path)
+
+
+def test_load_rejects_metadata_without_a_connector(tmp_path: Path) -> None:
+    ThresholdRule(threshold=0.5).save(tmp_path)
+    (tmp_path / METADATA_FILE).write_text("{}")
+
+    with pytest.raises(ValueError, match="does not say which connector"):
+        ThresholdRule.load(tmp_path)

@@ -97,6 +97,29 @@ def test_accepts_a_model_that_does_not_inherit_from_anything(
     assert validate_model(model, features, target, trainable=True) is model
 
 
+def test_does_not_refit_a_model_that_is_not_validated_for_training(
+    features: pd.DataFrame, target: np.ndarray
+) -> None:
+    pretrained = HandMadeXGBoost().fit(features, target)
+    booster_before = pretrained.estimator.get_booster().save_raw()
+
+    validate_model(pretrained, features, 1 - target, trainable=False)
+
+    assert pretrained.estimator.get_booster().save_raw() == booster_before
+
+
+def test_accepts_contract_methods_with_other_parameter_names(
+    features: pd.DataFrame, target: np.ndarray
+) -> None:
+    class SklearnStyleNames(HandMadeXGBoost):
+        def fit(self, X: pd.DataFrame, y: np.ndarray) -> Self:  # noqa: N803
+            return super().fit(X, y)
+
+    model = SklearnStyleNames()
+
+    assert validate_model(model, features, target, trainable=True) is model
+
+
 @pytest.mark.parametrize(
     ("model", "trainable", "problem"),
     [
@@ -104,12 +127,10 @@ def test_accepts_a_model_that_does_not_inherit_from_anything(
         pytest.param(WithoutFit(), True, "missing method fit() required by Trainable", id="no-fit"),
         pytest.param(WithoutFit(), False, "raised NotFittedError", id="no-fit-used-as-pretrained"),
         pytest.param(
-            PredictWithoutFeatures(), False, "must accept (features)", id="wrong-signature"
+            PredictWithoutFeatures(), True, "must accept (features)", id="wrong-signature"
         ),
-        pytest.param(
-            OnePredictionForAllRows(), False, "one value per row", id="wrong-output-shape"
-        ),
-        pytest.param(ForgetsTrainingOnLoad(), False, "raised NotFittedError", id="breaks-on-load"),
+        pytest.param(OnePredictionForAllRows(), True, "one value per row", id="wrong-output-shape"),
+        pytest.param(ForgetsTrainingOnLoad(), True, "raised NotFittedError", id="breaks-on-load"),
     ],
 )
 def test_rejects_broken_models(
