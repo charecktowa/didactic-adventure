@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 
 from framework.evaluation import evaluate
 from framework.validation import validate_model
-from models.xgboost_classifier.model import XGBoostClassifier
+from models.xgboost_classifier.model import build_model
 
 RANDOM_STATE = 42
 VALIDATION_ROWS = 100
@@ -40,7 +40,7 @@ def main() -> None:
         features, target, test_size=0.2, stratify=target, random_state=RANDOM_STATE
     )
 
-    model = XGBoostClassifier(
+    model = build_model(
         numeric_features=list(features.columns),
         xgb_params={
             "n_estimators": 200,

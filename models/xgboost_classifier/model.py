@@ -1,124 +1,43 @@
-import json
-import warnings
-from collections.abc import Sequence
-from pathlib import Path
-from typing import Any, Self
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-import joblib
 import numpy as np
-import pandas as pd
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import make_column_transformer
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 from xgboost import XGBClassifier
 
-from framework.connectors.base import METADATA_FILE, ModelConnector
-
-CONFIG_FILE = "config.json"
-PIPELINE_FILE = "pipeline.joblib"
+from framework.connectors.sklearn import SklearnConnector
 
 
-class XGBoostClassifier(ModelConnector):
-    """XGBoost classifier behind a scikit-learn Pipeline that preprocesses the features."""
+def build_model(
+    numeric_features: Sequence[str],
+    categorical_features: Sequence[str] = (),
+    xgb_params: Mapping[str, Any] | None = None,
+    max_categories: int = 20,
+) -> SklearnConnector:
+    """Build an XGBoost classifier behind the preprocessing it needs.
 
-    library = "xgboost"
-
-    def __init__(
-        self,
-        numeric_features: Sequence[str],
-        categorical_features: Sequence[str] = (),
-        xgb_params: dict[str, Any] | None = None,
-        max_categories: int = 20,
-    ) -> None:
-        """Configure the feature columns and XGBoost parameters for the pipeline.
-
-        `max_categories` caps the one-hot columns per categorical feature; rarer categories
-        are grouped together.
-        """
-        if max_categories < 1:
-            raise ValueError(f"max_categories must be at least 1, got {max_categories}")
-        self.config: dict[str, Any] = {
-            "numeric_features": list(numeric_features),
-            "categorical_features": list(categorical_features),
-            "xgb_params": xgb_params or {},
-            "max_categories": max_categories,
-        }
-        try:
-            json.dumps(self.config)
-        except TypeError as error:
-            # Fail now rather than after training, when save() writes the config.
-            raise ValueError(f"The model config must be JSON serializable: {error}") from error
-        self.pipeline = self._build_pipeline()
-
-    def _build_pipeline(self) -> Pipeline:
-        """Build preprocessing steps and the XGBoost classifier from the config."""
-        categorical = Pipeline(
-            [
-                # A column that is entirely missing arrives as float: make it categorical.
-                ("to_object", FunctionTransformer(np.asarray, kw_args={"dtype": object})),
-                # "missing" becomes a category of its own and keeps all-missing columns.
-                (
-                    "impute",
-                    SimpleImputer(
-                        strategy="constant", fill_value="missing", keep_empty_features=True
-                    ),
-                ),
-                (
-                    "encode",
-                    OneHotEncoder(
-                        handle_unknown="ignore",
-                        max_categories=self.config["max_categories"],
-                        # Dense: XGBoost reads the implicit zeros of a sparse matrix as missing.
-                        sparse_output=False,
-                    ),
-                ),
-            ]
-        )
-        preprocess = ColumnTransformer(
-            [
-                # XGBoost handles NaN natively, so numeric columns go through untouched.
-                ("numeric", "passthrough", self.config["numeric_features"]),
-                ("categorical", categorical, self.config["categorical_features"]),
-            ]
-        )
-        return Pipeline(
-            [
-                ("preprocess", preprocess),
-                ("classifier", XGBClassifier(**self.config["xgb_params"])),
-            ]
-        )
-
-    def fit(self, features: pd.DataFrame, target: np.ndarray) -> Self:
-        """Fit the pipeline on labeled features and return this model."""
-        self.pipeline.fit(features, target)
-        return self
-
-    def predict(self, features: pd.DataFrame) -> np.ndarray:
-        """Predict class labels for the supplied features."""
-        return np.asarray(self.pipeline.predict(features))
-
-    def _save_artifacts(self, directory: Path) -> None:
-        """Write the model config and fitted pipeline into ``directory``."""
-        (directory / CONFIG_FILE).write_text(json.dumps(self.config, indent=2))
-        joblib.dump(self.pipeline, directory / PIPELINE_FILE)
-
-    @classmethod
-    def load(cls, directory: Path) -> Self:
-        """Load a saved model, including one saved before `metadata.json` existed."""
-        if not (directory / METADATA_FILE).exists() and (directory / CONFIG_FILE).exists():
-            warnings.warn(
-                f"{directory} has no {METADATA_FILE}: loading it as a legacy "
-                f"{cls.__name__}. Save it again to upgrade it.",
-                stacklevel=2,
-            )
-            return cls._load_artifacts(directory)
-        return super().load(directory)
-
-    @classmethod
-    def _load_artifacts(cls, directory: Path) -> Self:
-        """Restore a model from a trusted directory containing saved artifacts."""
-        model = cls(**json.loads((directory / CONFIG_FILE).read_text()))
-        # joblib uses pickle under the hood: only load directories you trust.
-        model.pipeline = joblib.load(directory / PIPELINE_FILE)
-        return model
+    XGBoost handles missing values natively, so numeric columns go through untouched;
+    categorical ones are imputed and one-hot encoded. `max_categories` caps the one-hot
+    columns per categorical feature; rarer categories are grouped together.
+    """
+    categorical = make_pipeline(
+        # A column that is entirely missing arrives as float: make it categorical.
+        FunctionTransformer(np.asarray, kw_args={"dtype": object}),
+        # "missing" becomes a category of its own and keeps all-missing columns.
+        SimpleImputer(strategy="constant", fill_value="missing", keep_empty_features=True),
+        OneHotEncoder(
+            handle_unknown="ignore",
+            max_categories=max_categories,
+            # Dense: XGBoost reads the implicit zeros of a sparse matrix as missing.
+            sparse_output=False,
+        ),
+    )
+    preprocess = make_column_transformer(
+        ("passthrough", list(numeric_features)),
+        (categorical, list(categorical_features)),
+    )
+    classifier = XGBClassifier(**(xgb_params or {}))
+    return SklearnConnector(make_pipeline(preprocess, classifier))
