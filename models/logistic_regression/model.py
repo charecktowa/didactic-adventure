@@ -1,11 +1,12 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import numpy as np
 from sklearn.compose import make_column_transformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
 from framework.connectors.sklearn import SklearnConnector, select_columns
 
@@ -23,7 +24,10 @@ def build_model(
     """
     numeric = make_pipeline(SimpleImputer(strategy="median"), StandardScaler())
     categorical = make_pipeline(
-        SimpleImputer(strategy="most_frequent"), OneHotEncoder(handle_unknown="ignore")
+        # SimpleImputer rejects boolean columns: impute them as generic objects.
+        FunctionTransformer(np.asarray, kw_args={"dtype": object}),
+        SimpleImputer(strategy="most_frequent"),
+        OneHotEncoder(handle_unknown="ignore"),
     )
     preprocess = make_column_transformer(
         (numeric, select_columns(numeric_features, dtype_include="number")),

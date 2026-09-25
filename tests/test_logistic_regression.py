@@ -79,3 +79,14 @@ def test_save_then_load_reproduces_predictions(
     restored = SklearnConnector.load(tmp_path)
 
     np.testing.assert_array_equal(restored.predict(features), model.predict(features))
+
+
+def test_fits_when_the_only_categorical_column_is_boolean(
+    features: pd.DataFrame, target: np.ndarray
+) -> None:
+    # SimpleImputer rejects a boolean array, which is what a lone boolean column becomes.
+    features = features[["income"]].assign(member=features["income"] > 900)
+
+    predictions = build_model().fit(features, target).predict(features)
+
+    assert predictions.shape == target.shape

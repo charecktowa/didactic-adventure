@@ -13,7 +13,11 @@ import pandas as pd
 
 @runtime_checkable
 class Model(Protocol):
-    """A model the framework can predict with and persist. Every model must fulfil it."""
+    """A model the framework can predict with and persist. Every model must fulfil it.
+
+    It must also support `copy.deepcopy`, which `validate_model` uses to check it without
+    changing it.
+    """
 
     def predict(self, features: pd.DataFrame) -> np.ndarray:
         """Predict the output based on the given features."""

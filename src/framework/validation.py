@@ -46,7 +46,8 @@ def validate_model(
 
     Set ``trainable`` when the caller is going to train the model: `fit` becomes required
     and is run on the sample. Otherwise the model is used as it is, like a pretrained one.
-    The checks run on a copy, so ``model`` itself is never fitted or changed.
+    The checks run on a copy, so ``model`` itself is never fitted or changed: the model must
+    support `copy.deepcopy`.
 
     Raises:
         InvalidModelError: with every problem found.
@@ -103,6 +104,12 @@ def _check_behaviour(
 ) -> list[str]:
     try:
         model = copy.deepcopy(model)
+    except Exception as error:
+        return [
+            f"cannot be copied for validation ({type(error).__name__}: {error}); "
+            "define __deepcopy__ if it holds state that cannot be copied"
+        ]
+    try:
         if trainable and isinstance(model, Trainable):
             model.fit(features, target)
         predictions = model.predict(features)
