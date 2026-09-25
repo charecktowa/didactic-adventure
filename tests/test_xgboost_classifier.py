@@ -94,3 +94,59 @@ def test_save_then_load_reproduces_config_and_predictions(
 
     assert restored.config == model.config
     np.testing.assert_array_equal(restored.predict(features), model.predict(features))
+
+
+def test_keeps_zero_and_missing_numeric_values_apart_with_many_categories() -> None:
+    # A high-cardinality column used to make the one-hot output sparse, and XGBoost reads the
+    # implicit zeros of a sparse matrix as missing values.
+    rng = np.random.default_rng(seed=0)
+    size = 1000
+    value = rng.choice([np.nan, 0.0, 5.0], size)
+    features = pd.DataFrame(
+        {"value": value, "city": rng.choice([f"city-{i}" for i in range(100)], size)}
+    )
+    target = (value == 0).astype(int)
+
+    model = XGBoostClassifier(
+        numeric_features=["value"],
+        categorical_features=["city"],
+        xgb_params={"n_estimators": 20, "random_state": 0},
+    ).fit(features, target)
+
+    np.testing.assert_array_equal(model.predict(features), target)
+
+
+def test_limits_the_number_of_one_hot_columns() -> None:
+    features = pd.DataFrame({"id": [f"id-{i}" for i in range(500)]})
+    target = np.arange(500) % 2
+
+    model = XGBoostClassifier(
+        numeric_features=[],
+        categorical_features=["id"],
+        xgb_params={"n_estimators": 1, "random_state": 0},
+        max_categories=10,
+    ).fit(features, target)
+
+    assert model.pipeline[:-1].transform(features).shape == (500, 10)
+
+
+def test_fits_when_a_categorical_column_is_entirely_missing(
+    features: pd.DataFrame, target: np.ndarray
+) -> None:
+    features = features.assign(city=np.nan)
+    model = XGBoostClassifier(numeric_features=NUMERIC, categorical_features=CATEGORICAL)
+
+    predictions = model.fit(features, target).predict(features)
+
+    assert predictions.shape == target.shape
+
+
+def test_rejects_xgb_params_that_cannot_be_saved() -> None:
+    with pytest.raises(ValueError, match="JSON"):
+        XGBoostClassifier(numeric_features=NUMERIC, xgb_params={"eval_metric": len})
+
+
+@pytest.mark.parametrize("max_categories", [0, -1])
+def test_rejects_max_categories_below_one(max_categories: int) -> None:
+    with pytest.raises(ValueError, match="max_categories"):
+        XGBoostClassifier(numeric_features=NUMERIC, max_categories=max_categories)
