@@ -5,7 +5,7 @@ import pandas as pd
 
 from framework.contracts.model import Model
 
-type Metric = Callable[[np.ndarray, np.ndarray], float]
+Metric = Callable[[np.ndarray, np.ndarray], float]
 
 
 def evaluate(
@@ -16,6 +16,4 @@ def evaluate(
 ) -> dict[str, float]:
     """Score model predictions against targets with each named metric."""
     predictions = model.predict(features)
-    return {
-        name: float(metric(target, predictions)) for name, metric in metrics.items()
-    }
+    return {name: float(metric(target, predictions)) for name, metric in metrics.items()}

@@ -30,9 +30,7 @@ def load_data() -> tuple[pd.DataFrame, np.ndarray]:
 def main() -> None:
     """Train, evaluate, and optionally save the classifier from CLI arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--output", type=Path, help="Directory to save the trained model"
-    )
+    parser.add_argument("--output", type=Path, help="Directory to save the trained model")
     args = parser.parse_args()
 
     features, target = load_data()
