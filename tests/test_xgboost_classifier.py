@@ -8,8 +8,6 @@ from framework.connectors.sklearn import SklearnConnector
 from framework.validation import validate_model
 from models.xgboost_classifier.model import build_model
 
-NUMERIC = ["age", "income"]
-CATEGORICAL = ["city"]
 FAST = {"n_estimators": 20, "random_state": 0}
 
 
@@ -34,11 +32,11 @@ def target(features: pd.DataFrame) -> np.ndarray:
 
 @pytest.fixture
 def model(features: pd.DataFrame, target: np.ndarray) -> SklearnConnector:
-    return build_model(NUMERIC, CATEGORICAL, xgb_params=FAST).fit(features, target)
+    return build_model(xgb_params=FAST).fit(features, target)
 
 
 def test_is_a_valid_trainable_model(features: pd.DataFrame, target: np.ndarray) -> None:
-    validate_model(build_model(NUMERIC, CATEGORICAL, FAST), features, target, trainable=True)
+    validate_model(build_model(FAST), features, target, trainable=True)
 
 
 def test_learns_a_simple_signal(
@@ -66,7 +64,7 @@ def test_predicts_rows_not_seen_during_training(
 
 
 def test_passes_xgb_params_to_the_classifier() -> None:
-    model = build_model(NUMERIC, xgb_params={"n_estimators": 7, "max_depth": 2})
+    model = build_model(xgb_params={"n_estimators": 7, "max_depth": 2})
 
     classifier = model.estimator[-1]  # type: ignore[index]
     assert (classifier.n_estimators, classifier.max_depth) == (7, 2)
@@ -93,7 +91,7 @@ def test_keeps_zero_and_missing_numeric_values_apart_with_many_categories() -> N
     )
     target = (value == 0).astype(int)
 
-    model = build_model(["value"], ["city"], xgb_params=FAST).fit(features, target)
+    model = build_model(xgb_params=FAST).fit(features, target)
 
     np.testing.assert_array_equal(model.predict(features), target)
 
@@ -102,7 +100,7 @@ def test_limits_the_number_of_one_hot_columns() -> None:
     features = pd.DataFrame({"id": [f"id-{i}" for i in range(500)]})
     target = np.arange(500) % 2
 
-    model = build_model([], ["id"], xgb_params={"n_estimators": 1}, max_categories=10)
+    model = build_model(xgb_params={"n_estimators": 1}, max_categories=10)
     model.fit(features, target)
 
     preprocess = model.estimator[:-1]  # type: ignore[index]
@@ -112,8 +110,8 @@ def test_limits_the_number_of_one_hot_columns() -> None:
 def test_fits_when_a_categorical_column_is_entirely_missing(
     features: pd.DataFrame, target: np.ndarray
 ) -> None:
-    features = features.assign(city=np.nan)
-    model = build_model(NUMERIC, CATEGORICAL, xgb_params=FAST)
+    features = features.assign(city=pd.Series(np.nan, index=features.index, dtype=object))
+    model = build_model(xgb_params=FAST)
 
     predictions = model.fit(features, target).predict(features)
 

@@ -98,7 +98,7 @@ class Uncopyable(HandMadeXGBoost):
 
 
 def test_accepts_the_repository_connector(features: pd.DataFrame, target: np.ndarray) -> None:
-    model = build_model(numeric_features=["x"], xgb_params={"n_estimators": 5})
+    model = build_model(xgb_params={"n_estimators": 5})
 
     assert validate_model(model, features, target, trainable=True) is model
 

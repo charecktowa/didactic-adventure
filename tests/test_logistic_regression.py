@@ -8,9 +8,6 @@ from framework.connectors.sklearn import SklearnConnector
 from framework.validation import validate_model
 from models.logistic_regression.model import build_model
 
-NUMERIC = ["age", "income"]
-CATEGORICAL = ["city"]
-
 
 @pytest.fixture
 def features() -> pd.DataFrame:
@@ -33,11 +30,11 @@ def target(features: pd.DataFrame) -> np.ndarray:
 
 @pytest.fixture
 def model(features: pd.DataFrame, target: np.ndarray) -> SklearnConnector:
-    return build_model(NUMERIC, CATEGORICAL).fit(features, target)
+    return build_model().fit(features, target)
 
 
 def test_is_a_valid_trainable_model(features: pd.DataFrame, target: np.ndarray) -> None:
-    validate_model(build_model(NUMERIC, CATEGORICAL), features, target, trainable=True)
+    validate_model(build_model(), features, target, trainable=True)
 
 
 def test_learns_a_simple_signal(
@@ -65,7 +62,7 @@ def test_predicts_rows_not_seen_during_training(
 
 
 def test_passes_logistic_params_to_the_classifier() -> None:
-    model = build_model(NUMERIC, logistic_params={"C": 0.1, "max_iter": 500})
+    model = build_model(logistic_params={"C": 0.1, "max_iter": 500})
 
     classifier = model.estimator[-1]  # type: ignore[index]
     assert (classifier.C, classifier.max_iter) == (0.1, 500)
