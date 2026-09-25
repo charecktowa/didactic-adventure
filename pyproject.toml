@@ -46,8 +46,17 @@ python_version = "3.13"
 ignore_missing_imports = true
 warn_unused_ignores = true
 
+[[tool.mypy.overrides]]
+# First-party code must always resolve; never let it silently become `Any`.
+module = ["framework.*", "models.*"]
+ignore_missing_imports = false
+
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
 
-[tool.pytest.ini_options]
+[tool.pytest]
+minversion = "9.0"
 testpaths = ["tests"]
+addopts = ["--import-mode=importlib", "-ra"]
+# Fail on unknown markers, config typos, duplicate parametrize ids and passing xfails.
+strict = true
