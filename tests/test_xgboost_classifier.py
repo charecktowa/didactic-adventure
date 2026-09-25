@@ -1,11 +1,13 @@
+import json
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
 
-from framework.contracts.model import Model
-from models.xgboost_classifier.model import XGBoostClassifier
+from framework.contracts.model import Model, Trainable
+from models.xgboost_classifier.model import CONFIG_FILE, PIPELINE_FILE, XGBoostClassifier
 
 NUMERIC = ["age", "income"]
 CATEGORICAL = ["city"]
@@ -39,10 +41,12 @@ def model(features: pd.DataFrame, target: np.ndarray) -> XGBoostClassifier:
     ).fit(features, target)
 
 
-def test_fulfils_model_contract(model: XGBoostClassifier) -> None:
+def test_fulfils_model_and_trainable_contracts(model: XGBoostClassifier) -> None:
     contract: Model = model  # checked statically by mypy
+    trainable: Trainable = model
 
     assert isinstance(contract, Model)
+    assert isinstance(trainable, Trainable)
 
 
 def test_fit_returns_the_same_instance(features: pd.DataFrame, target: np.ndarray) -> None:
@@ -93,6 +97,19 @@ def test_save_then_load_reproduces_config_and_predictions(
     restored = XGBoostClassifier.load(directory)
 
     assert restored.config == model.config
+    np.testing.assert_array_equal(restored.predict(features), model.predict(features))
+
+
+def test_loads_a_model_saved_before_metadata_existed(
+    model: XGBoostClassifier, features: pd.DataFrame, tmp_path: Path
+) -> None:
+    # The layout written by save() before ModelConnector: no metadata.json.
+    (tmp_path / CONFIG_FILE).write_text(json.dumps(model.config))
+    joblib.dump(model.pipeline, tmp_path / PIPELINE_FILE)
+
+    with pytest.warns(UserWarning, match="legacy"):
+        restored = XGBoostClassifier.load(tmp_path)
+
     np.testing.assert_array_equal(restored.predict(features), model.predict(features))
 
 
