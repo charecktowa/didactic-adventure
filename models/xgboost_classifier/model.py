@@ -38,8 +38,8 @@ class XGBoostClassifier:
         categorical = Pipeline(
             [
                 ("impute", SimpleImputer(strategy="most_frequent")),
-                # Dense output: XGBoost reads missing entries of a sparse matrix as NaN, not 0.
-                ("encode", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                # Keep sparse output to avoid materializing large one-hot matrices in memory.
+                ("encode", OneHotEncoder(handle_unknown="ignore"))
             ]
         )
         preprocess = ColumnTransformer(
