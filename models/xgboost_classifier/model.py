@@ -12,12 +12,16 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 from xgboost import XGBClassifier
 
+from framework.connectors.base import ModelConnector
+
 CONFIG_FILE = "config.json"
 PIPELINE_FILE = "pipeline.joblib"
 
 
-class XGBoostClassifier:
+class XGBoostClassifier(ModelConnector):
     """XGBoost classifier behind a scikit-learn Pipeline that preprocesses the features."""
+
+    library = "xgboost"
 
     def __init__(
         self,
@@ -93,14 +97,13 @@ class XGBoostClassifier:
         """Predict class labels for the supplied features."""
         return np.asarray(self.pipeline.predict(features))
 
-    def save(self, directory: Path) -> None:
+    def _save_artifacts(self, directory: Path) -> None:
         """Write the model config and fitted pipeline into ``directory``."""
-        directory.mkdir(parents=True, exist_ok=True)
         (directory / CONFIG_FILE).write_text(json.dumps(self.config, indent=2))
         joblib.dump(self.pipeline, directory / PIPELINE_FILE)
 
     @classmethod
-    def load(cls, directory: Path) -> Self:
+    def _load_artifacts(cls, directory: Path) -> Self:
         """Restore a model from a trusted directory containing saved artifacts."""
         model = cls(**json.loads((directory / CONFIG_FILE).read_text()))
         # joblib uses pickle under the hood: only load directories you trust.

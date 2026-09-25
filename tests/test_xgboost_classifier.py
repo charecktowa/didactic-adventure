@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from framework.contracts.model import Model
+from framework.contracts.model import Model, Trainable
 from models.xgboost_classifier.model import XGBoostClassifier
 
 NUMERIC = ["age", "income"]
@@ -39,10 +39,12 @@ def model(features: pd.DataFrame, target: np.ndarray) -> XGBoostClassifier:
     ).fit(features, target)
 
 
-def test_fulfils_model_contract(model: XGBoostClassifier) -> None:
+def test_fulfils_model_and_trainable_contracts(model: XGBoostClassifier) -> None:
     contract: Model = model  # checked statically by mypy
+    trainable: Trainable = model
 
     assert isinstance(contract, Model)
+    assert isinstance(trainable, Trainable)
 
 
 def test_fit_returns_the_same_instance(features: pd.DataFrame, target: np.ndarray) -> None:

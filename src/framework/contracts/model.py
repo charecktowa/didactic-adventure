@@ -1,3 +1,8 @@
+"""Contracts the framework depends on, defined by capability rather than by ML library.
+
+Models fulfil them structurally: inheriting from them is not required.
+"""
+
 from pathlib import Path
 from typing import Protocol, Self, runtime_checkable
 
@@ -8,6 +13,8 @@ import pandas as pd
 
 @runtime_checkable
 class Model(Protocol):
+    """A model the framework can predict with and persist. Every model must fulfil it."""
+
     def predict(self, features: pd.DataFrame) -> np.ndarray:
         """Predict the output based on the given features."""
         ...
@@ -22,12 +29,13 @@ class Model(Protocol):
         ...
 
 
+@runtime_checkable
 class Trainable(Protocol):
-    """Optional: implement when the framework has to support training.
+    """Optional capability: implement it when the framework has to train the model.
 
     Hyperparameters belong in `__init__`, so `fit` has the same signature for every model.
     """
 
-    def fit(self, features: pd.DataFrame, targets: np.ndarray) -> Self:
-        """Train the model using the given features and targets."""
+    def fit(self, features: pd.DataFrame, target: np.ndarray) -> Self:
+        """Train the model using the given features and target."""
         ...

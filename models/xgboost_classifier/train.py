@@ -15,9 +15,11 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.model_selection import train_test_split
 
 from framework.evaluation import evaluate
+from framework.validation import validate_model
 from models.xgboost_classifier.model import XGBoostClassifier
 
 RANDOM_STATE = 42
+VALIDATION_ROWS = 100
 
 
 def load_data() -> tuple[pd.DataFrame, np.ndarray]:
@@ -46,7 +48,10 @@ def main() -> None:
             "learning_rate": 0.1,
             "random_state": RANDOM_STATE,
         },
-    ).fit(x_train, y_train)
+    )
+    # Fail fast on a small sample before spending time on the real training.
+    validate_model(model, x_train.iloc[:VALIDATION_ROWS], y_train[:VALIDATION_ROWS], trainable=True)
+    model.fit(x_train, y_train)
 
     metrics = {
         "accuracy": accuracy_score,
