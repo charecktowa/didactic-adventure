@@ -30,3 +30,6 @@ jobs:
 
       - name: Bandit
         run: uv run bandit -r . -x .venv -c pyproject.toml
+
+      - name: Tests
+        run: uv run pytest
