@@ -113,6 +113,14 @@ def test_does_not_refit_a_model_that_is_not_validated_for_training(
     assert pretrained.estimator.get_booster().save_raw() == booster_before
 
 
+def test_leaves_the_validated_model_untouched(features: pd.DataFrame, target: np.ndarray) -> None:
+    model = HandMadeXGBoost()
+
+    validate_model(model, features, target, trainable=True)
+
+    assert not model.estimator.__sklearn_is_fitted__()
+
+
 def test_accepts_contract_methods_with_other_parameter_names(
     features: pd.DataFrame, target: np.ndarray
 ) -> None:

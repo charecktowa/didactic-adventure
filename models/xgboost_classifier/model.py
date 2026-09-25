@@ -8,12 +8,12 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 from xgboost import XGBClassifier
 
-from framework.connectors.sklearn import SklearnConnector
+from framework.connectors.sklearn import SklearnConnector, select_columns
 
 
 def build_model(
-    numeric_features: Sequence[str],
-    categorical_features: Sequence[str] = (),
+    numeric_features: Sequence[str] | None = None,
+    categorical_features: Sequence[str] | None = None,
     xgb_params: Mapping[str, Any] | None = None,
     max_categories: int = 20,
 ) -> SklearnConnector:
@@ -21,7 +21,8 @@ def build_model(
 
     XGBoost handles missing values natively, so numeric columns go through untouched;
     categorical ones are imputed and one-hot encoded. `max_categories` caps the one-hot
-    columns per categorical feature; rarer categories are grouped together.
+    columns per categorical feature; rarer categories are grouped together. Without column
+    names, numeric dtypes are treated as numeric and every other column as categorical.
     """
     categorical = make_pipeline(
         # A column that is entirely missing arrives as float: make it categorical.
@@ -36,8 +37,8 @@ def build_model(
         ),
     )
     preprocess = make_column_transformer(
-        ("passthrough", list(numeric_features)),
-        (categorical, list(categorical_features)),
+        ("passthrough", select_columns(numeric_features, dtype_include="number")),
+        (categorical, select_columns(categorical_features, dtype_exclude="number")),
     )
     classifier = XGBClassifier(**(xgb_params or {}))
     return SklearnConnector(make_pipeline(preprocess, classifier))

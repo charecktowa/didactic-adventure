@@ -5,6 +5,7 @@ signatures and runs the model on a small sample, so a broken model fails fast wi
 message instead of halfway through a training run.
 """
 
+import copy
 import inspect
 from collections.abc import Mapping
 from pathlib import Path
@@ -44,8 +45,8 @@ def validate_model(
     """Check that ``model`` fulfils the contracts and works on a small sample.
 
     Set ``trainable`` when the caller is going to train the model: `fit` becomes required
-    and the model is fitted on the sample, so validate before the real training. Otherwise
-    the model is used as it is, like a pretrained one, and never refitted.
+    and is run on the sample. Otherwise the model is used as it is, like a pretrained one.
+    The checks run on a copy, so ``model`` itself is never fitted or changed.
 
     Raises:
         InvalidModelError: with every problem found.
@@ -101,6 +102,7 @@ def _check_behaviour(
     model: Model, features: pd.DataFrame, target: np.ndarray, *, trainable: bool
 ) -> list[str]:
     try:
+        model = copy.deepcopy(model)
         if trainable and isinstance(model, Trainable):
             model.fit(features, target)
         predictions = model.predict(features)

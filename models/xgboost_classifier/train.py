@@ -41,7 +41,6 @@ def main() -> None:
     )
 
     model = build_model(
-        numeric_features=list(features.columns),
         xgb_params={
             "n_estimators": 200,
             "max_depth": 3,

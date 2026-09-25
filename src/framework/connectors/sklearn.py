@@ -1,11 +1,13 @@
 """Connector for any estimator that follows the scikit-learn API."""
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Protocol, Self
 
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.compose import make_column_selector
 
 from framework.connectors.base import ModelConnector
 
@@ -44,3 +46,11 @@ class SklearnConnector(ModelConnector):
     def _load_artifacts(cls, directory: Path) -> Self:
         # joblib uses pickle under the hood: only load directories you trust.
         return cls(joblib.load(directory / ESTIMATOR_FILE))
+
+
+def select_columns(names: Sequence[str] | None, **dtypes: str) -> Any:
+    """Columns for a ColumnTransformer: ``names``, or every column matching ``dtypes``.
+
+    Lets a recipe be built without knowing the dataset's columns in advance.
+    """
+    return make_column_selector(**dtypes) if names is None else list(names)
