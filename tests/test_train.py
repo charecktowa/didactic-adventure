@@ -25,7 +25,9 @@ def test_main_prints_metrics_and_saves_a_loadable_model(
     stdout = capsys.readouterr().out
     for metric in ("accuracy", "precision", "recall", "f1"):
         assert metric in stdout
-    assert XGBoostClassifier.load(output).config["numeric_features"]
+    features, _ = train.load_data()
+    restored = XGBoostClassifier.load(output)
+    assert restored.predict(features.iloc[:5]).shape == (5,)
 
 
 def test_main_without_output_does_not_write_files(

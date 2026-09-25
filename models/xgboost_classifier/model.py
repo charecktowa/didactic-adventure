@@ -9,7 +9,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 from xgboost import XGBClassifier
 
 CONFIG_FILE = "config.json"
@@ -24,22 +24,48 @@ class XGBoostClassifier:
         numeric_features: Sequence[str],
         categorical_features: Sequence[str] = (),
         xgb_params: dict[str, Any] | None = None,
+        max_categories: int = 20,
     ) -> None:
-        """Configure the feature columns and XGBoost parameters for the pipeline."""
+        """Configure the feature columns and XGBoost parameters for the pipeline.
+
+        `max_categories` caps the one-hot columns per categorical feature; rarer categories
+        are grouped together.
+        """
         self.config: dict[str, Any] = {
             "numeric_features": list(numeric_features),
             "categorical_features": list(categorical_features),
             "xgb_params": xgb_params or {},
+            "max_categories": max_categories,
         }
+        try:
+            json.dumps(self.config)
+        except TypeError as error:
+            # Fail now rather than after training, when save() writes the config.
+            raise ValueError(f"The model config must be JSON serializable: {error}") from error
         self.pipeline = self._build_pipeline()
 
     def _build_pipeline(self) -> Pipeline:
         """Build preprocessing steps and the XGBoost classifier from the config."""
         categorical = Pipeline(
             [
-                ("impute", SimpleImputer(strategy="most_frequent")),
-                # Keep sparse output to avoid materializing large one-hot matrices in memory.
-                ("encode", OneHotEncoder(handle_unknown="ignore")),
+                # A column that is entirely missing arrives as float: make it categorical.
+                ("to_object", FunctionTransformer(np.asarray, kw_args={"dtype": object})),
+                # "missing" becomes a category of its own and keeps all-missing columns.
+                (
+                    "impute",
+                    SimpleImputer(
+                        strategy="constant", fill_value="missing", keep_empty_features=True
+                    ),
+                ),
+                (
+                    "encode",
+                    OneHotEncoder(
+                        handle_unknown="ignore",
+                        max_categories=self.config["max_categories"],
+                        # Dense: XGBoost reads the implicit zeros of a sparse matrix as missing.
+                        sparse_output=False,
+                    ),
+                ),
             ]
         )
         preprocess = ColumnTransformer(
