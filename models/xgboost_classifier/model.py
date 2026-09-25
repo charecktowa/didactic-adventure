@@ -31,6 +31,8 @@ class XGBoostClassifier:
         `max_categories` caps the one-hot columns per categorical feature; rarer categories
         are grouped together.
         """
+        if max_categories < 1:
+            raise ValueError(f"max_categories must be at least 1, got {max_categories}")
         self.config: dict[str, Any] = {
             "numeric_features": list(numeric_features),
             "categorical_features": list(categorical_features),
