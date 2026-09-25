@@ -13,7 +13,7 @@ import pytest
 from xgboost import XGBClassifier
 
 from framework.validation import InvalidModelError, validate_model
-from models.xgboost_classifier.model import XGBoostClassifier
+from models.xgboost_classifier.model import build_model
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ class ForgetsTrainingOnLoad(HandMadeXGBoost):
 
 
 def test_accepts_the_repository_connector(features: pd.DataFrame, target: np.ndarray) -> None:
-    model = XGBoostClassifier(numeric_features=["x"], xgb_params={"n_estimators": 5})
+    model = build_model(numeric_features=["x"], xgb_params={"n_estimators": 5})
 
     assert validate_model(model, features, target, trainable=True) is model
 

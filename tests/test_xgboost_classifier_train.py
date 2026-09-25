@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from framework.connectors.sklearn import SklearnConnector
 from models.xgboost_classifier import train
-from models.xgboost_classifier.model import XGBoostClassifier
 
 
 def test_load_data_returns_aligned_features_and_binary_target() -> None:
@@ -26,7 +26,7 @@ def test_main_prints_metrics_and_saves_a_loadable_model(
     for metric in ("accuracy", "precision", "recall", "f1"):
         assert metric in stdout
     features, _ = train.load_data()
-    restored = XGBoostClassifier.load(output)
+    restored = SklearnConnector.load(output)
     assert restored.predict(features.iloc[:5]).shape == (5,)
 
 
