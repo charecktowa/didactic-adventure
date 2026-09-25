@@ -39,7 +39,7 @@ class XGBoostClassifier:
             [
                 ("impute", SimpleImputer(strategy="most_frequent")),
                 # Keep sparse output to avoid materializing large one-hot matrices in memory.
-                ("encode", OneHotEncoder(handle_unknown="ignore"))
+                ("encode", OneHotEncoder(handle_unknown="ignore")),
             ]
         )
         preprocess = ColumnTransformer(
