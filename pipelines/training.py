@@ -8,6 +8,7 @@ import argparse
 
 from zenml import pipeline
 
+from models import available_models
 from steps.evaluate import evaluate
 from steps.load_data import load_data
 from steps.split_data import split_data
@@ -36,7 +37,7 @@ def run_training(model_name: str) -> dict[str, float]:
 def main() -> None:
     """Run the training pipeline for the model named on the command line."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", required=True, help="Package name inside models/")
+    parser.add_argument("--model", required=True, choices=available_models())
     args = parser.parse_args()
 
     for name, value in run_training(args.model).items():
