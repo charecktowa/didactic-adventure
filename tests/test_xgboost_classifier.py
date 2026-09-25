@@ -11,6 +11,7 @@ from models.xgboost_classifier.model import XGBoostClassifier
 
 @pytest.fixture
 def data() -> tuple[pd.DataFrame, np.ndarray]:
+    """Build labeled sample data with numeric, categorical, and missing values."""
     rng = np.random.default_rng(0)
     size = 200
     features = pd.DataFrame(
@@ -27,6 +28,7 @@ def data() -> tuple[pd.DataFrame, np.ndarray]:
 
 
 def make_model() -> XGBoostClassifier:
+    """Configure a small classifier for the synthetic dataset."""
     return XGBoostClassifier(
         numeric_features=["age", "income"],
         categorical_features=["city"],
@@ -35,12 +37,14 @@ def make_model() -> XGBoostClassifier:
 
 
 def test_fulfils_contract() -> None:
+    """Check that the classifier satisfies both runtime protocols."""
     model = make_model()
     assert isinstance(model, Model)
     assert isinstance(model, Trainable)
 
 
 def test_fit_predict(data: tuple[pd.DataFrame, np.ndarray]) -> None:
+    """Check that fitting produces one binary prediction per input row."""
     features, target = data
     predictions = make_model().fit(features, target).predict(features)
     assert predictions.shape == target.shape
@@ -48,6 +52,7 @@ def test_fit_predict(data: tuple[pd.DataFrame, np.ndarray]) -> None:
 
 
 def test_save_load_roundtrip(data: tuple[pd.DataFrame, np.ndarray], tmp_path: Path) -> None:
+    """Check that a restored model preserves config and predictions."""
     features, target = data
     model = make_model().fit(features, target)
 
@@ -59,10 +64,12 @@ def test_save_load_roundtrip(data: tuple[pd.DataFrame, np.ndarray], tmp_path: Pa
 
 
 def test_evaluate(data: tuple[pd.DataFrame, np.ndarray]) -> None:
+    """Check that evaluation applies a named accuracy metric."""
     features, target = data
     model = make_model().fit(features, target)
 
     def accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+        """Compute the fraction of labels predicted correctly."""
         return float((y_true == y_pred).mean())
 
     assert evaluate(model, features, target, {"accuracy": accuracy})["accuracy"] > 0.9

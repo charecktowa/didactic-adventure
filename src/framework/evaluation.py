@@ -14,5 +14,6 @@ def evaluate(
     target: np.ndarray,
     metrics: Mapping[str, Metric],
 ) -> dict[str, float]:
+    """Score model predictions against targets with each named metric."""
     predictions = model.predict(features)
     return {name: float(metric(target, predictions)) for name, metric in metrics.items()}

@@ -21,12 +21,14 @@ RANDOM_STATE = 42
 
 
 def load_data() -> tuple[pd.DataFrame, np.ndarray]:
+    """Load the bundled breast cancer dataset as features and labels."""
     # Bundled with scikit-learn: no download needed.
     dataset = load_breast_cancer(as_frame=True)
     return dataset.data, dataset.target.to_numpy()
 
 
 def main() -> None:
+    """Train, evaluate, and optionally save the classifier from CLI arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, help="Directory to save the trained model")
     args = parser.parse_args()

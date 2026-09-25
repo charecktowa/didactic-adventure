@@ -25,6 +25,7 @@ class XGBoostClassifier:
         categorical_features: Sequence[str] = (),
         xgb_params: dict[str, Any] | None = None,
     ) -> None:
+        """Configure the feature columns and XGBoost parameters for the pipeline."""
         self.config: dict[str, Any] = {
             "numeric_features": list(numeric_features),
             "categorical_features": list(categorical_features),
@@ -33,6 +34,7 @@ class XGBoostClassifier:
         self.pipeline = self._build_pipeline()
 
     def _build_pipeline(self) -> Pipeline:
+        """Build preprocessing steps and the XGBoost classifier from the config."""
         categorical = Pipeline(
             [
                 ("impute", SimpleImputer(strategy="most_frequent")),
@@ -55,19 +57,23 @@ class XGBoostClassifier:
         )
 
     def fit(self, features: pd.DataFrame, target: np.ndarray) -> Self:
+        """Fit the pipeline on labeled features and return this model."""
         self.pipeline.fit(features, target)
         return self
 
     def predict(self, features: pd.DataFrame) -> np.ndarray:
+        """Predict class labels for the supplied features."""
         return np.asarray(self.pipeline.predict(features))
 
     def save(self, directory: Path) -> None:
+        """Write the model config and fitted pipeline into ``directory``."""
         directory.mkdir(parents=True, exist_ok=True)
         (directory / CONFIG_FILE).write_text(json.dumps(self.config, indent=2))
         joblib.dump(self.pipeline, directory / PIPELINE_FILE)
 
     @classmethod
     def load(cls, directory: Path) -> Self:
+        """Restore a model from a trusted directory containing saved artifacts."""
         model = cls(**json.loads((directory / CONFIG_FILE).read_text()))
         # joblib uses pickle under the hood: only load directories you trust.
         model.pipeline = joblib.load(directory / PIPELINE_FILE)
