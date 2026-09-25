@@ -40,3 +40,26 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+
+  # Heavier dependencies than `quality`: the ZenML pipelines are checked in their own job.
+  pipelines:
+    runs-on: ubuntu-latest
+    env:
+      ZENML_ANALYTICS_OPT_IN: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: uv sync --frozen --group mlops
+
+      - name: Mypy
+        run: uv run --frozen --group mlops mypy .
+
+      - name: Pipeline tests
+        run: uv run --frozen --group mlops pytest tests/test_training_pipeline.py
