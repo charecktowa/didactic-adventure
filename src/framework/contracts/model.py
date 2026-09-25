@@ -28,6 +28,6 @@ class Trainable(Protocol):
     Hyperparameters belong in `__init__`, so `fit` has the same signature for every model.
     """
 
-    def fit(self, features: pd.DataFrame, targets: np.ndarray) -> None:
+    def fit(self, features: pd.DataFrame, targets: np.ndarray) -> Self:
         """Train the model using the given features and targets."""
         ...
