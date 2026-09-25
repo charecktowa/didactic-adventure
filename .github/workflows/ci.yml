@@ -1,8 +1,15 @@
 name: CI
 
 on:
+  # Branches are checked through their pull request; main again after each merge.
   push:
+    branches: [main]
   pull_request:
+
+# A newer push to the same ref cancels the run still in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
