@@ -86,7 +86,10 @@ def _missing_methods(model: object, contract: type) -> list[str]:
 def _check_signature(model: object, name: str, parameters: tuple[str, ...]) -> str | None:
     # Bound positionally: the framework calls contract methods positionally, so parameter
     # names are free (`fit(X, y)` is fine), as they are for mypy.
-    signature = inspect.signature(getattr(model, name))
+    try:
+        signature = inspect.signature(getattr(model, name))
+    except (TypeError, ValueError) as error:
+        return f"{name}() has no inspectable signature: {error}"
     try:
         signature.bind(*parameters)
     except TypeError:

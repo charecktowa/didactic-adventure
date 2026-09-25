@@ -77,6 +77,11 @@ class OnePredictionForAllRows(HandMadeXGBoost):
         return super().predict(features)[:1]
 
 
+class UninspectablePredict(HandMadeXGBoost):
+    # A builtin callable without an inspectable signature.
+    predict = staticmethod(ValueError)  # type: ignore[assignment]
+
+
 class ForgetsTrainingOnLoad(HandMadeXGBoost):
     @classmethod
     def load(cls, directory: Path) -> Self:
@@ -128,6 +133,9 @@ def test_accepts_contract_methods_with_other_parameter_names(
         pytest.param(WithoutFit(), False, "raised NotFittedError", id="no-fit-used-as-pretrained"),
         pytest.param(
             PredictWithoutFeatures(), True, "must accept (features)", id="wrong-signature"
+        ),
+        pytest.param(
+            UninspectablePredict(), False, "no inspectable signature", id="uninspectable-signature"
         ),
         pytest.param(OnePredictionForAllRows(), True, "one value per row", id="wrong-output-shape"),
         pytest.param(ForgetsTrainingOnLoad(), True, "raised NotFittedError", id="breaks-on-load"),

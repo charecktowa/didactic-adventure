@@ -1,4 +1,5 @@
 import json
+import warnings
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Self
@@ -12,7 +13,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 from xgboost import XGBClassifier
 
-from framework.connectors.base import ModelConnector
+from framework.connectors.base import METADATA_FILE, ModelConnector
 
 CONFIG_FILE = "config.json"
 PIPELINE_FILE = "pipeline.joblib"
@@ -101,6 +102,18 @@ class XGBoostClassifier(ModelConnector):
         """Write the model config and fitted pipeline into ``directory``."""
         (directory / CONFIG_FILE).write_text(json.dumps(self.config, indent=2))
         joblib.dump(self.pipeline, directory / PIPELINE_FILE)
+
+    @classmethod
+    def load(cls, directory: Path) -> Self:
+        """Load a saved model, including one saved before `metadata.json` existed."""
+        if not (directory / METADATA_FILE).exists() and (directory / CONFIG_FILE).exists():
+            warnings.warn(
+                f"{directory} has no {METADATA_FILE}: loading it as a legacy "
+                f"{cls.__name__}. Save it again to upgrade it.",
+                stacklevel=2,
+            )
+            return cls._load_artifacts(directory)
+        return super().load(directory)
 
     @classmethod
     def _load_artifacts(cls, directory: Path) -> Self:
