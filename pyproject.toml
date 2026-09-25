@@ -11,8 +11,11 @@ dependencies = [
     "polars",
     "pyarrow",
     "scikit-learn",
-    "xgboost",
 ]
+
+[project.optional-dependencies]
+# Only needed by models/xgboost_classifier.
+xgboost = ["xgboost"]
 
 [build-system]
 requires = ["hatchling"]

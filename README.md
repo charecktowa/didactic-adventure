@@ -14,7 +14,7 @@ A small ML framework to learn MLOps step by step.
 ## Train a model locally
 
 ```bash
-uv sync
+uv sync --extra xgboost
 uv run python -m models.xgboost_classifier.train
 # optionally save it
 uv run python -m models.xgboost_classifier.train --output /tmp/xgboost_classifier
@@ -25,6 +25,9 @@ metrics.
 
 ## Checks
 
+Model dependencies are optional extras, so install them all before running the checks:
+
 ```bash
+uv sync --all-extras
 uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest
 ```

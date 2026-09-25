@@ -516,6 +516,10 @@ dependencies = [
     { name = "polars" },
     { name = "pyarrow" },
     { name = "scikit-learn" },
+]
+
+[package.optional-dependencies]
+xgboost = [
     { name = "xgboost" },
 ]
 
@@ -542,8 +546,9 @@ requires-dist = [
     { name = "polars" },
     { name = "pyarrow" },
     { name = "scikit-learn" },
-    { name = "xgboost" },
+    { name = "xgboost", marker = "extra == 'xgboost'" },
 ]
+provides-extras = ["xgboost"]
 
 [package.metadata.requires-dev]
 dev = [
