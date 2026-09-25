@@ -40,7 +40,7 @@ def main() -> None:
         features, target, test_size=0.2, stratify=target, random_state=RANDOM_STATE
     )
 
-    model = build_model(numeric_features=list(features.columns))
+    model = build_model()
     # Fail fast on a small sample before spending time on the real training.
     validate_model(model, x_train.iloc[:VALIDATION_ROWS], y_train[:VALIDATION_ROWS], trainable=True)
     model.fit(x_train, y_train)
