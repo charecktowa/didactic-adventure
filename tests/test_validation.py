@@ -4,16 +4,19 @@ Each broken wrapper shows a mistake that a protocol check alone would miss or re
 """
 
 import re
+import threading
 from pathlib import Path
 from typing import Self
 
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.exceptions import NotFittedError
+from sklearn.utils.validation import check_is_fitted
 from xgboost import XGBClassifier
 
 from framework.validation import InvalidModelError, validate_model
-from models.xgboost_classifier.model import XGBoostClassifier
+from models.xgboost_classifier.model import build_model
 
 
 @pytest.fixture
@@ -88,8 +91,14 @@ class ForgetsTrainingOnLoad(HandMadeXGBoost):
         return cls()
 
 
+class Uncopyable(HandMadeXGBoost):
+    def __init__(self) -> None:
+        super().__init__()
+        self.lock = threading.Lock()
+
+
 def test_accepts_the_repository_connector(features: pd.DataFrame, target: np.ndarray) -> None:
-    model = XGBoostClassifier(numeric_features=["x"], xgb_params={"n_estimators": 5})
+    model = build_model(xgb_params={"n_estimators": 5})
 
     assert validate_model(model, features, target, trainable=True) is model
 
@@ -111,6 +120,15 @@ def test_does_not_refit_a_model_that_is_not_validated_for_training(
     validate_model(pretrained, features, 1 - target, trainable=False)
 
     assert pretrained.estimator.get_booster().save_raw() == booster_before
+
+
+def test_leaves_the_validated_model_untouched(features: pd.DataFrame, target: np.ndarray) -> None:
+    model = HandMadeXGBoost()
+
+    validate_model(model, features, target, trainable=True)
+
+    with pytest.raises(NotFittedError):
+        check_is_fitted(model.estimator)
 
 
 def test_accepts_contract_methods_with_other_parameter_names(
@@ -139,6 +157,7 @@ def test_accepts_contract_methods_with_other_parameter_names(
         ),
         pytest.param(OnePredictionForAllRows(), True, "one value per row", id="wrong-output-shape"),
         pytest.param(ForgetsTrainingOnLoad(), True, "raised NotFittedError", id="breaks-on-load"),
+        pytest.param(Uncopyable(), True, "cannot be copied for validation", id="not-copyable"),
     ],
 )
 def test_rejects_broken_models(
