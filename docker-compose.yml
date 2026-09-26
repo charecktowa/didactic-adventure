@@ -10,5 +10,18 @@ services:
       # Keep ZenML's runs and artifacts between containers.
       - zenml:/home/app/.config/zenml
 
+  # ZenML dashboard at http://localhost:8237, reading the same runs as `app`.
+  dashboard:
+    build: .
+    image: didactic-adventure:dev
+    command: zenml login --local --blocking --ip-address 0.0.0.0 --port 8237
+    environment:
+      ZENML_ANALYTICS_OPT_IN: "false"
+    ports:
+      # Only on this machine: the local `default` user has no password.
+      - "127.0.0.1:8237:8237"
+    volumes:
+      - zenml:/home/app/.config/zenml
+
 volumes:
   zenml:

@@ -32,5 +32,12 @@ docker compose run --rm app python -m pipelines.training --model xgboost_classif
 docker compose run --rm app pytest
 ```
 
+To browse the runs in ZenML's dashboard:
+
+```bash
+docker compose up -d dashboard                   # then open http://localhost:8237 (user: default, no password)
+docker compose down                              # stop it; the runs stay in the volume
+```
+
 The source folder is mounted into the container, so code changes need no rebuild; rebuild after
 changing dependencies. ZenML's runs are kept in the `zenml` volume between containers.
