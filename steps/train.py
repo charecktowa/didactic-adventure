@@ -7,11 +7,12 @@ from zenml import step
 import models
 from framework.contracts.model import Model, Trainable
 from framework.validation import validate_model
+from materializers.model import ModelMaterializer
 
 VALIDATION_ROWS = 100
 
 
-@step
+@step(output_materializers=ModelMaterializer)
 def train(model_name: str, x_train: pd.DataFrame, y_train: np.ndarray) -> Annotated[Model, "model"]:
     """Build the model in `models/<model_name>`, validate it on a sample, then fit it."""
     model = models.build(model_name)
