@@ -1,6 +1,6 @@
 """The ZenML training pipeline and its model materializer, on a local, throwaway ZenML store.
 
-Skipped when the `mlops` dependency group is not installed.
+Not collected when the `mlops` dependency group is not installed (see `conftest.py`).
 """
 
 import json
@@ -14,12 +14,10 @@ import pandas as pd
 import pytest
 from sklearn.datasets import load_breast_cancer
 
-pytest.importorskip("zenml")
-
-from framework.connectors.sklearn import SklearnConnector  # noqa: E402
-from framework.contracts.model import Model  # noqa: E402
-from materializers.model import MODEL_CLASS_FILE, MODEL_DIR, ModelMaterializer  # noqa: E402
-from pipelines import training  # noqa: E402
+from framework.connectors.sklearn import SklearnConnector
+from framework.contracts.model import Model
+from materializers.model import MODEL_CLASS_FILE, MODEL_DIR, ModelMaterializer
+from pipelines import training
 
 
 @pytest.fixture(autouse=True)
@@ -92,6 +90,24 @@ def test_refuses_to_load_as_an_unrelated_model_class(tmp_path: Path) -> None:
         pytest.param("{}", ValueError, "does not name the class", id="missing-fields"),
         pytest.param("[]", ValueError, "does not name the class", id="not-an-object"),
         pytest.param(
+            json.dumps({"module": 1, "qualname": ["x"]}),
+            ValueError,
+            "does not name the class",
+            id="fields-not-strings",
+        ),
+        pytest.param(
+            json.dumps({"module": "models.gone", "qualname": "Model"}),
+            ValueError,
+            "models.gone.Model, which cannot be found",
+            id="module-moved",
+        ),
+        pytest.param(
+            json.dumps({"module": "framework.connectors.sklearn", "qualname": "Renamed"}),
+            ValueError,
+            "framework.connectors.sklearn.Renamed, which cannot be found",
+            id="class-renamed",
+        ),
+        pytest.param(
             json.dumps({"module": "os.path", "qualname": "join"}),
             TypeError,
             "os.path.join, which is not a Model class",
@@ -114,4 +130,13 @@ def test_rejects_an_artifact_that_does_not_name_a_model_class(
         file.write(content)
 
     with pytest.raises(error, match=re.escape(message)):
+        ModelMaterializer(uri).load(Model)
+
+
+def test_rejects_an_artifact_without_its_class_file(tmp_path: Path) -> None:
+    uri = str(tmp_path / "artifact")
+    ModelMaterializer(uri).save(ThresholdRule(threshold=0.5))
+    os.remove(os.path.join(uri, MODEL_CLASS_FILE))
+
+    with pytest.raises(ValueError, match="does not name the class"):
         ModelMaterializer(uri).load(Model)

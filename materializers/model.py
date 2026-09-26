@@ -70,12 +70,18 @@ class ModelMaterializer(BaseMaterializer):
             with fileio.open(path, "r") as file:
                 saved = json.load(file)
             module, qualname = saved["module"], saved["qualname"]
-        except (json.JSONDecodeError, KeyError, TypeError) as error:
+            if not (isinstance(module, str) and isinstance(qualname, str)):
+                raise TypeError("module and qualname must be strings")
+        except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
             raise ValueError(f"{path} does not name the class that saved the model") from error
 
-        model_class: Any = importlib.import_module(module)
-        for attribute in qualname.split("."):
-            model_class = getattr(model_class, attribute)
+        try:
+            model_class: Any = importlib.import_module(module)
+            for attribute in qualname.split("."):
+                model_class = getattr(model_class, attribute)
+        except (ImportError, AttributeError) as error:
+            # Typically the class was moved or renamed after the model was saved.
+            raise ValueError(f"{path} names {module}.{qualname}, which cannot be found") from error
         if not (isinstance(model_class, type) and issubclass(model_class, Model)):
             raise TypeError(f"{path} names {module}.{qualname}, which is not a Model class")
         return model_class
