@@ -63,3 +63,19 @@ jobs:
 
       - name: Pipeline tests
         run: uv run --frozen --group mlops pytest tests/test_training_pipeline.py
+
+  # The image must build and pass the tests on its own, without the host's code or packages.
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      # The Dockerfile's cache mounts need BuildKit; do not depend on the runner's default.
+      DOCKER_BUILDKIT: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build image
+        run: docker compose build
+
+      - name: Tests inside the image
+        run: docker run --rm -e ZENML_ANALYTICS_OPT_IN=false didactic-adventure:dev pytest

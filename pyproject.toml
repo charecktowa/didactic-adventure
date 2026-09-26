@@ -23,7 +23,7 @@ packages = ["src/framework", "models", "steps", "pipelines"]
 
 
 [dependency-groups]
-mlops = ["mlflow", "zenml[local]"]
+mlops = ["mlflow", "zenml[local,server]"]
 dev = [
     "ruff",
     "mypy",
