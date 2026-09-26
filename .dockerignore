@@ -1,9 +1,14 @@
-# Keep the build context small and never copy local state into the image.
-.git
-.venv
-.zen
-.mypy_cache
-.pytest_cache
-.ruff_cache
+# Allowlist: send only what the image needs, so local files such as .env never end up in it.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!models/
+!steps/
+!pipelines/
+!tests/
+
+# Byte-code from the host, even inside the allowed folders.
 **/__pycache__
-*.py[cod]
+**/*.py[cod]

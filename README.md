@@ -21,6 +21,8 @@ uv run pytest
 
 ## Run it with Docker
 
+Needs Docker 23 or newer, where BuildKit is the default builder.
+
 The image gives everyone the same Linux, Python and dependencies, whatever the host system.
 
 ```bash

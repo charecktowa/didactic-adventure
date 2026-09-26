@@ -67,6 +67,9 @@ jobs:
   # The image must build and pass the tests on its own, without the host's code or packages.
   docker:
     runs-on: ubuntu-latest
+    env:
+      # The Dockerfile's cache mounts need BuildKit; do not depend on the runner's default.
+      DOCKER_BUILDKIT: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
