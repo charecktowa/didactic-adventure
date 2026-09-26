@@ -63,9 +63,19 @@ class ModelMaterializer(BaseMaterializer):
             return model
 
     def _saved_class(self) -> type[Model]:
-        with fileio.open(os.path.join(self.uri, MODEL_CLASS_FILE), "r") as file:
-            saved = json.load(file)
-        model_class: Any = importlib.import_module(saved["module"])
-        for attribute in saved["qualname"].split("."):
+        # The artifact store is trusted, as it is for ZenML's own pickle materializer: the
+        # module named here is imported. What it names must still be a `Model` class.
+        path = os.path.join(self.uri, MODEL_CLASS_FILE)
+        try:
+            with fileio.open(path, "r") as file:
+                saved = json.load(file)
+            module, qualname = saved["module"], saved["qualname"]
+        except (json.JSONDecodeError, KeyError, TypeError) as error:
+            raise ValueError(f"{path} does not name the class that saved the model") from error
+
+        model_class: Any = importlib.import_module(module)
+        for attribute in qualname.split("."):
             model_class = getattr(model_class, attribute)
+        if not (isinstance(model_class, type) and issubclass(model_class, Model)):
+            raise TypeError(f"{path} names {module}.{qualname}, which is not a Model class")
         return model_class

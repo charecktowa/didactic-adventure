@@ -4,6 +4,8 @@ Skipped when the `mlops` dependency group is not installed.
 """
 
 import json
+import os
+import re
 from pathlib import Path
 from typing import Self
 
@@ -16,7 +18,7 @@ pytest.importorskip("zenml")
 
 from framework.connectors.sklearn import SklearnConnector  # noqa: E402
 from framework.contracts.model import Model  # noqa: E402
-from materializers.model import MODEL_DIR, ModelMaterializer  # noqa: E402
+from materializers.model import MODEL_CLASS_FILE, MODEL_DIR, ModelMaterializer  # noqa: E402
 from pipelines import training  # noqa: E402
 
 
@@ -81,3 +83,35 @@ def test_refuses_to_load_as_an_unrelated_model_class(tmp_path: Path) -> None:
 
     with pytest.raises(TypeError, match="ThresholdRule"):
         ModelMaterializer(uri).load(SklearnConnector)
+
+
+@pytest.mark.parametrize(
+    ("content", "error", "message"),
+    [
+        pytest.param("{broken", ValueError, "does not name the class", id="malformed-json"),
+        pytest.param("{}", ValueError, "does not name the class", id="missing-fields"),
+        pytest.param("[]", ValueError, "does not name the class", id="not-an-object"),
+        pytest.param(
+            json.dumps({"module": "os.path", "qualname": "join"}),
+            TypeError,
+            "os.path.join, which is not a Model class",
+            id="not-a-class",
+        ),
+        pytest.param(
+            json.dumps({"module": "builtins", "qualname": "dict"}),
+            TypeError,
+            "builtins.dict, which is not a Model class",
+            id="not-a-model",
+        ),
+    ],
+)
+def test_rejects_an_artifact_that_does_not_name_a_model_class(
+    tmp_path: Path, content: str, error: type[Exception], message: str
+) -> None:
+    uri = str(tmp_path / "artifact")
+    ModelMaterializer(uri).save(ThresholdRule(threshold=0.5))
+    with open(os.path.join(uri, MODEL_CLASS_FILE), "w") as file:
+        file.write(content)
+
+    with pytest.raises(error, match=re.escape(message)):
+        ModelMaterializer(uri).load(Model)
