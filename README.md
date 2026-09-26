@@ -10,6 +10,7 @@ framework's contracts, then trained and evaluated by a ZenML pipeline.
 | `src/framework/` | Contracts, connectors, validation and evaluation. Independent of any orchestrator. |
 | `models/<name>/` | One model per package: `model.py` exposes `build_model()`. |
 | `steps/`, `pipelines/` | ZenML steps and the training pipeline that uses the framework. |
+| `materializers/` | How ZenML stores models: with each model's own `save()` and `load()`, not a pickle. |
 
 ## Run it locally
 
