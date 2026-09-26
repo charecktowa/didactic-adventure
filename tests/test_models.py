@@ -4,9 +4,6 @@ A model is a package with a `model.py` that exposes `build_model()`, callable wi
 arguments, returning the model to train.
 """
 
-import importlib
-import pkgutil
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,7 +11,7 @@ import pytest
 import models
 from framework.validation import validate_model
 
-MODEL_NAMES = sorted(pkg.name for pkg in pkgutil.iter_modules(models.__path__) if pkg.ispkg)
+MODEL_NAMES = models.available_models()
 
 
 @pytest.fixture
@@ -41,6 +38,9 @@ def test_finds_the_repository_models() -> None:
 
 @pytest.mark.parametrize("name", MODEL_NAMES)
 def test_model_is_valid(name: str, features: pd.DataFrame, target: np.ndarray) -> None:
-    module = importlib.import_module(f"models.{name}.model")
+    validate_model(models.build(name), features, target, trainable=True)
 
-    validate_model(module.build_model(), features, target, trainable=True)
+
+def test_rejects_an_unknown_model_name() -> None:
+    with pytest.raises(ValueError, match="Unknown model 'framework'"):
+        models.build("framework")
