@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    image: didactic-adventure:dev
+    environment:
+      ZENML_ANALYTICS_OPT_IN: "false"
+    volumes:
+      # Edit code on the host and run it in the container without rebuilding.
+      - .:/app
+      # Keep ZenML's runs and artifacts between containers.
+      - zenml:/home/app/.config/zenml
+
+volumes:
+  zenml:
